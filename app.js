@@ -14,64 +14,47 @@ const state = {
     isPanning: false,
     panStart: { x: 0, y: 0 },
     panTotalDist: 0,
-    // Mobile-specific state
     lastPinchDist: 0
 };
 
 const PALETTE = [
-    { id: 'cyan', std: '#00fbff', type: 'neon' }, { id: 'lime', std: '#39ff14', type: 'neon' },
-    { id: 'magenta', std: '#ff00ff', type: 'neon' }, { id: 'yellow', std: '#fffb00', type: 'neon' },
-    { id: 'orange', std: '#ff6600', type: 'flat' }, { id: 'red', std: '#ff0055', type: 'flat' },
-    { id: 'blue', std: '#3498db', type: 'flat' }, { id: 'gray', std: '#7f8c8d', type: 'flat' }
+    { id: 'cyan', std: '#00fbff' }, { id: 'lime', std: '#39ff14' },
+    { id: 'magenta', std: '#ff00ff' }, { id: 'yellow', std: '#fffb00' },
+    { id: 'orange', std: '#ff6600' }, { id: 'red', std: '#ff0055' },
+    { id: 'blue', std: '#3498db' }, { id: 'gray', std: '#7f8c8d' }
 ];
 
 function init() {
     engine.generateBaseLayer();
-    renderColorDropdown(); // Updated from renderPalette
     attachListeners();
     updateJSONOutput();
     animate();
 }
 
-// Updated to handle the grouped <select> in index.html
-function renderColorDropdown() {
-    const select = document.getElementById('colorSelect');
-    if (!select) return;
-
-    select.onchange = (e) => {
-        state.activeColorId = e.target.value;
-    };
-}
-
 function attachListeners() {
-    // Resize
     window.addEventListener('resize', () => {
         engine.canvas.width = window.innerWidth;
         engine.canvas.height = window.innerHeight;
     });
     window.dispatchEvent(new Event('resize'));
 
-    /**
-     * UNIFIED POINTER LISTENERS (Mobile + Mouse)
-     */
+    // Color Dropdown
+    document.getElementById('colorSelect').onchange = (e) => {
+        state.activeColorId = e.target.value;
+    };
+
+    // Unified Pointer Events
     window.addEventListener('pointerdown', e => {
-        // Prevent UI clicks from triggering map logic
-        if (e.target.closest('#ui-top') || e.target.closest('#sidebar') || e.target.closest('.fab-container') || e.target.closest('.ui-container')) return;
-        
+        if (e.target.closest('#ui-top') || e.target.closest('#sidebar') || e.target.closest('.fab-container')) return;
         state.isPanning = true;
         state.panStart = { x: e.clientX, y: e.clientY };
         state.panTotalDist = 0;
         document.getElementById('context-menu').style.display = 'none';
-
-        // Essential for mobile dragging
-        if (e.target.id === 'mapCanvas') {
-            engine.canvas.setPointerCapture(e.pointerId);
-        }
+        if(e.target.id === 'mapCanvas') engine.canvas.setPointerCapture(e.pointerId);
     });
 
     window.addEventListener('pointermove', e => {
         state.mouse = { x: e.clientX, y: e.clientY };
-        
         if (state.isPanning) {
             const dx = e.clientX - state.panStart.x;
             const dy = e.clientY - state.panStart.y;
@@ -80,65 +63,49 @@ function attachListeners() {
             state.panTotalDist += Math.sqrt(dx*dx + dy*dy);
             state.panStart = { x: e.clientX, y: e.clientY };
         }
-
         const h = engine.pixelToHex(e.clientX, e.clientY);
-        const hud = document.getElementById('coords-hud');
-        if (hud) hud.innerText = `Q: ${h.q} R: ${h.r} S: ${h.s}`;
+        document.getElementById('coords-hud').innerText = `Q: ${h.q} R: ${h.r} S: ${h.s}`;
     });
 
     window.addEventListener('pointerup', e => {
         const wasDrag = state.panTotalDist > 10;
         state.isPanning = false;
-
-        if (!wasDrag && e.target.id === 'mapCanvas') {
-            handleMapClick(e);
-        }
-
-        if (engine.canvas.releasePointerCapture) {
-            engine.canvas.releasePointerCapture(e.pointerId);
-        }
+        if (!wasDrag && e.target.id === 'mapCanvas') handleMapClick(e);
+        if (engine.canvas.releasePointerCapture) engine.canvas.releasePointerCapture(e.pointerId);
     });
 
-    // Handle Wheel Zoom (Desktop)
-    engine.canvas.addEventListener('wheel', handleZoom, { passive: false });
+    // Zoom Math
+    const applyZoom = (f, cx, cy) => {
+        const wx = (cx - engine.canvas.width/2 - engine.view.x) / engine.view.zoom;
+        const wy = (cy - engine.canvas.height/2 - engine.view.y) / engine.view.zoom;
+        const nz = Math.min(Math.max(engine.view.zoom * f, 0.1), 5);
+        engine.view.x -= wx * (nz - engine.view.zoom);
+        engine.view.y -= wy * (nz - engine.view.zoom);
+        engine.view.zoom = nz;
+    };
 
-    // Handle Pinch Zoom (Mobile)
-    engine.canvas.addEventListener('touchmove', e => {
-        if (e.touches.length === 2) {
-            e.preventDefault(); // Stop page scaling
-            const dist = Math.hypot(
-                e.touches[0].pageX - e.touches[1].pageX,
-                e.touches[0].pageY - e.touches[1].pageY
-            );
-            
-            if (state.lastPinchDist > 0) {
-                const factor = dist / state.lastPinchDist;
-                const midX = (e.touches[0].pageX + e.touches[1].pageX) / 2;
-                const midY = (e.touches[0].pageY + e.touches[1].pageY) / 2;
-                applyZoom(factor, midX, midY);
-            }
-            state.lastPinchDist = dist;
-        }
+    engine.canvas.addEventListener('wheel', e => {
+        e.preventDefault();
+        applyZoom(1 + (e.deltaY > 0 ? -1 : 1) * 0.1, e.clientX, e.clientY);
     }, { passive: false });
 
-    engine.canvas.addEventListener('touchend', () => {
-        state.lastPinchDist = 0;
-    });
+    // Pinch Zoom
+    engine.canvas.addEventListener('touchmove', e => {
+        if (e.touches.length === 2) {
+            e.preventDefault();
+            const d = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
+            if (state.lastPinchDist > 0) applyZoom(d / state.lastPinchDist, (e.touches[0].pageX + e.touches[1].pageX)/2, (e.touches[0].pageY + e.touches[1].pageY)/2);
+            state.lastPinchDist = d;
+        }
+    }, { passive: false });
+    engine.canvas.addEventListener('touchend', () => state.lastPinchDist = 0);
 
-    // --- REMAINDER OF YOUR ORIGINAL UI LISTENERS ---
-    document.getElementById('cb-toggle').onclick = function() {
-        this.classList.toggle('active');
-        document.body.classList.toggle('cb-mode');
-    };
-
-    document.getElementById('center-map').onclick = function() {
-        engine.view = { x: 0, y: 0, zoom: 0.8 };
-    };
-
+    // UI Actions
+    document.getElementById('cb-toggle').onclick = () => document.body.classList.toggle('cb-mode');
+    document.getElementById('center-map').onclick = () => engine.view = { x: 0, y: 0, zoom: 0.8 };
     document.getElementById('spacing-ctrl').oninput = (e) => {
         state.spacing = parseInt(e.target.value);
-        const valLabel = document.getElementById('spacing-val');
-        if (valLabel) valLabel.innerText = state.spacing;
+        document.getElementById('spacing-val').innerText = state.spacing;
         updateJSONOutput();
     };
 
@@ -153,50 +120,128 @@ function attachListeners() {
         document.getElementById('context-menu').style.display = 'none';
         updateJSONOutput();
     };
-    
+
     document.getElementById('btn-copy').onclick = () => {
-        const area = document.getElementById('io-area');
-        area.select();
+        document.getElementById('io-area').select();
         document.execCommand('copy');
     };
 
     document.getElementById('btn-import').onclick = () => {
         try {
             const data = JSON.parse(document.getElementById('io-area').value);
-            state.hqs = data.hqs;
-            state.spacing = data.spacing;
-            const ctrl = document.getElementById('spacing-ctrl');
-            const val = document.getElementById('spacing-val');
-            if(ctrl) ctrl.value = state.spacing;
-            if(val) val.innerText = state.spacing;
+            state.hqs = data.hqs; state.spacing = data.spacing;
+            document.getElementById('spacing-ctrl').value = state.spacing;
+            document.getElementById('spacing-val').innerText = state.spacing;
         } catch(e) { alert("Invalid JSON"); }
     };
 
     document.getElementById('btn-clear').onclick = () => {
-        if(confirm("Wipe all non-turret objects?")) {
-            state.hqs = state.hqs.filter(h => h.isTurret);
-            updateJSONOutput();
-        }
+        if(confirm("Wipe all?")) { state.hqs = state.hqs.filter(h => h.isTurret); updateJSONOutput(); }
     };
 }
 
-// Shared zoom logic for Wheel and Pinch
-function applyZoom(factor, centerX, centerY) {
-    const mouseWorldX = (centerX - engine.canvas.width / 2 - engine.view.x) / engine.view.zoom;
-    const mouseWorldY = (centerY - engine.canvas.height / 2 - engine.view.y) / engine.view.zoom;
+function handleMapClick(e) {
+    const hex = engine.pixelToHex(e.clientX, e.clientY);
+    const hIdx = state.hqs.findIndex(h => engine.getDistance(hex, h) <= (h.isTurret ? 3 : 1));
     
-    const newZoom = Math.min(Math.max(engine.view.zoom * factor, 0.1), 5);
-    
-    engine.view.x -= mouseWorldX * (newZoom - engine.view.zoom);
-    engine.view.y -= mouseWorldY * (newZoom - engine.view.zoom);
-    engine.view.zoom = newZoom;
+    if (hIdx > -1 && state.moveIdx === -1) {
+        state.selectedIdx = hIdx;
+        const menu = document.getElementById('context-menu');
+        menu.style.display = 'block';
+        menu.style.left = e.clientX + 'px';
+        menu.style.top = e.clientY + 'px';
+        return;
+    }
+
+    const error = checkCollision(hex, state.moveIdx);
+    if (error) { showWarning(error); return; }
+
+    if (state.moveIdx > -1) {
+        state.hqs[state.moveIdx] = { ...state.hqs[state.moveIdx], ...hex };
+        state.moveIdx = -1;
+    } else {
+        const nameInput = document.getElementById('player-name');
+        const names = nameInput.value.split(',').map(n => n.trim()).filter(n => n);
+        if (names.length > 0) {
+            const isRandom = document.getElementById('random-toggle').checked;
+            const finalColor = isRandom ? PALETTE[Math.floor(Math.random() * PALETTE.length)].id : state.activeColorId;
+            state.hqs.push({ ...hex, player: names.shift(), colorId: finalColor, isTurret: false });
+            nameInput.value = names.join(', ');
+        }
+    }
+    updateJSONOutput();
 }
 
-function handleZoom(e) {
-    e.preventDefault();
-    const factor = 1 + (e.deltaY > 0 ? -1 : 1) * 0.1;
-    applyZoom(factor, e.clientX, e.clientY);
+function checkCollision(target, excludeIdx = -1) {
+    const d = (Math.abs(target.q) + Math.abs(target.r) + Math.abs(target.s)) / 2;
+    if (d <= 18.5) return "RESTRICTED AREA";
+    for (let i = 0; i < state.hqs.length; i++) {
+        if (i === excludeIdx) continue;
+        const hq = state.hqs[i];
+        const dist = engine.getDistance(target, hq);
+        if (hq.isTurret && dist < 5) return "TURRET OVERLAP";
+        if (!hq.isTurret && dist < (3 + state.spacing)) return "SPACING VIOLATION";
+    }
+    return null;
 }
 
-// Your original Logic Functions (handleMapClick, checkCollision, showWarning, updateJSONOutput, animate, render)
-// ... Keep them exactly as they were ...
+function showWarning(msg) {
+    const el = document.getElementById('warning-overlay');
+    el.innerText = msg; el.classList.add('show');
+    setTimeout(() => el.classList.remove('show'), 1500);
+}
+
+function updateJSONOutput() {
+    document.getElementById('io-area').value = JSON.stringify({ hqs: state.hqs, spacing: state.spacing });
+}
+
+function animate() {
+    render();
+    requestAnimationFrame(animate);
+}
+
+function render() {
+    const { ctx, canvas, view, hexMap } = engine;
+    ctx.fillStyle = "#0c0c0c";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.save();
+    ctx.translate(canvas.width / 2 + view.x, canvas.height / 2 + view.y);
+    ctx.scale(view.zoom, view.zoom);
+
+    const hoverHex = engine.pixelToHex(state.mouse.x, state.mouse.y);
+    const style = getComputedStyle(document.body);
+
+    hexMap.forEach((val, key) => {
+        const [q, r, s] = key.split(',').map(Number);
+        const px = engine.hexSize * (Math.sqrt(3) * q + Math.sqrt(3)/2 * r);
+        const py = engine.hexSize * (3/2 * r);
+        let color = style.getPropertyValue('--' + val.type);
+        let border = "rgba(255,255,255,0.03)";
+
+        state.hqs.forEach((hq, idx) => {
+            if (idx === state.moveIdx) return;
+            if (engine.getDistance({q,r,s}, hq) <= (hq.isTurret ? 3 : 1)) {
+                color = (idx === state.selectedIdx) ? style.getPropertyValue('--selected') : PALETTE.find(p => p.id === hq.colorId).std;
+                border = "white";
+            }
+        });
+
+        if (engine.getDistance({q,r,s}, hoverHex) <= 1) {
+            color = checkCollision(hoverHex, state.moveIdx) ? "rgba(255,0,0,0.4)" : "rgba(255,255,255,0.2)";
+        }
+        engine.drawHex(px, py, color, border);
+    });
+
+    state.hqs.forEach((hq, idx) => {
+        const pos = (idx === state.moveIdx) ? hoverHex : hq;
+        const px = engine.hexSize * (Math.sqrt(3) * pos.q + Math.sqrt(3)/2 * pos.r);
+        const py = engine.hexSize * (3/2 * pos.r);
+        ctx.fillStyle = "white";
+        ctx.font = hq.isTurret ? "bold 13px Inter" : "10px Inter";
+        ctx.textAlign = "center";
+        ctx.fillText(hq.player.toUpperCase(), px, py + 5);
+    });
+    ctx.restore();
+}
+
+init();
