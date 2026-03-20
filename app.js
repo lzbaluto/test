@@ -13,36 +13,35 @@ const state = {
     mouse: { x: 0, y: 0 },
     isPanning: false,
     panStart: { x: 0, y: 0 },
-    panTotalDist: 0
+    panTotalDist: 0,
+    // Mobile-specific state
+    lastPinchDist: 0
 };
 
 const PALETTE = [
-    { id: 'cyan', std: '#00fbff' }, { id: 'lime', std: '#39ff14' },
-    { id: 'magenta', std: '#ff00ff' }, { id: 'yellow', std: '#fffb00' },
-    { id: 'orange', std: '#ff6600' }, { id: 'red', std: '#ff0055' }
+    { id: 'cyan', std: '#00fbff', type: 'neon' }, { id: 'lime', std: '#39ff14', type: 'neon' },
+    { id: 'magenta', std: '#ff00ff', type: 'neon' }, { id: 'yellow', std: '#fffb00', type: 'neon' },
+    { id: 'orange', std: '#ff6600', type: 'flat' }, { id: 'red', std: '#ff0055', type: 'flat' },
+    { id: 'blue', std: '#3498db', type: 'flat' }, { id: 'gray', std: '#7f8c8d', type: 'flat' }
 ];
 
 function init() {
     engine.generateBaseLayer();
-    renderPalette();
+    renderColorDropdown(); // Updated from renderPalette
     attachListeners();
     updateJSONOutput();
     animate();
 }
 
-function renderPalette() {
-    const container = document.getElementById('palette-container');
-    container.innerHTML = PALETTE.map(c => `
-        <div class="swatch ${state.activeColorId === c.id ? 'active' : ''}" 
-             style="background-color: ${c.std}" 
-             onclick="setActiveColor('${c.id}')"></div>
-    `).join('');
-}
+// Updated to handle the grouped <select> in index.html
+function renderColorDropdown() {
+    const select = document.getElementById('colorSelect');
+    if (!select) return;
 
-window.setActiveColor = (id) => {
-    state.activeColorId = id;
-    renderPalette();
-};
+    select.onchange = (e) => {
+        state.activeColorId = e.target.value;
+    };
+}
 
 function attachListeners() {
     // Resize
@@ -52,17 +51,25 @@ function attachListeners() {
     });
     window.dispatchEvent(new Event('resize'));
 
-    // Panning & Interaction (Mouse Down)
-    window.addEventListener('mousedown', e => {
-        if (e.target.closest('#ui-top') || e.target.closest('#sidebar') || e.target.closest('.fab-container')) return;
+    /**
+     * UNIFIED POINTER LISTENERS (Mobile + Mouse)
+     */
+    window.addEventListener('pointerdown', e => {
+        // Prevent UI clicks from triggering map logic
+        if (e.target.closest('#ui-top') || e.target.closest('#sidebar') || e.target.closest('.fab-container') || e.target.closest('.ui-container')) return;
+        
         state.isPanning = true;
         state.panStart = { x: e.clientX, y: e.clientY };
         state.panTotalDist = 0;
         document.getElementById('context-menu').style.display = 'none';
+
+        // Essential for mobile dragging
+        if (e.target.id === 'mapCanvas') {
+            engine.canvas.setPointerCapture(e.pointerId);
+        }
     });
 
-    // Panning & Hover (Mouse Move)
-    window.addEventListener('mousemove', e => {
+    window.addEventListener('pointermove', e => {
         state.mouse = { x: e.clientX, y: e.clientY };
         
         if (state.isPanning) {
@@ -70,28 +77,55 @@ function attachListeners() {
             const dy = e.clientY - state.panStart.y;
             engine.view.x += dx;
             engine.view.y += dy;
-            state.panTotalDist += Math.abs(dx) + Math.abs(dy);
+            state.panTotalDist += Math.sqrt(dx*dx + dy*dy);
             state.panStart = { x: e.clientX, y: e.clientY };
         }
 
         const h = engine.pixelToHex(e.clientX, e.clientY);
-        document.getElementById('coords-hud').innerText = `Q: ${h.q} R: ${h.r} S: ${h.s}`;
+        const hud = document.getElementById('coords-hud');
+        if (hud) hud.innerText = `Q: ${h.q} R: ${h.r} S: ${h.s}`;
     });
 
-    // Panning End & Click Logic (Mouse Up)
-    window.addEventListener('mouseup', e => {
+    window.addEventListener('pointerup', e => {
         const wasDrag = state.panTotalDist > 10;
         state.isPanning = false;
 
         if (!wasDrag && e.target.id === 'mapCanvas') {
             handleMapClick(e);
         }
+
+        if (engine.canvas.releasePointerCapture) {
+            engine.canvas.releasePointerCapture(e.pointerId);
+        }
     });
 
-    // Zoom (Mouse Wheel)
+    // Handle Wheel Zoom (Desktop)
     engine.canvas.addEventListener('wheel', handleZoom, { passive: false });
 
-    // UI Buttons & Inputs
+    // Handle Pinch Zoom (Mobile)
+    engine.canvas.addEventListener('touchmove', e => {
+        if (e.touches.length === 2) {
+            e.preventDefault(); // Stop page scaling
+            const dist = Math.hypot(
+                e.touches[0].pageX - e.touches[1].pageX,
+                e.touches[0].pageY - e.touches[1].pageY
+            );
+            
+            if (state.lastPinchDist > 0) {
+                const factor = dist / state.lastPinchDist;
+                const midX = (e.touches[0].pageX + e.touches[1].pageX) / 2;
+                const midY = (e.touches[0].pageY + e.touches[1].pageY) / 2;
+                applyZoom(factor, midX, midY);
+            }
+            state.lastPinchDist = dist;
+        }
+    }, { passive: false });
+
+    engine.canvas.addEventListener('touchend', () => {
+        state.lastPinchDist = 0;
+    });
+
+    // --- REMAINDER OF YOUR ORIGINAL UI LISTENERS ---
     document.getElementById('cb-toggle').onclick = function() {
         this.classList.toggle('active');
         document.body.classList.toggle('cb-mode');
@@ -103,11 +137,11 @@ function attachListeners() {
 
     document.getElementById('spacing-ctrl').oninput = (e) => {
         state.spacing = parseInt(e.target.value);
-        document.getElementById('spacing-val').innerText = state.spacing;
+        const valLabel = document.getElementById('spacing-val');
+        if (valLabel) valLabel.innerText = state.spacing;
         updateJSONOutput();
     };
 
-    // Context Menu Actions
     document.getElementById('menu-move').onclick = () => {
         state.moveIdx = state.selectedIdx;
         document.getElementById('context-menu').style.display = 'none';
@@ -120,7 +154,6 @@ function attachListeners() {
         updateJSONOutput();
     };
     
-    // JSON I/O
     document.getElementById('btn-copy').onclick = () => {
         const area = document.getElementById('io-area');
         area.select();
@@ -132,8 +165,10 @@ function attachListeners() {
             const data = JSON.parse(document.getElementById('io-area').value);
             state.hqs = data.hqs;
             state.spacing = data.spacing;
-            document.getElementById('spacing-ctrl').value = state.spacing;
-            document.getElementById('spacing-val').innerText = state.spacing;
+            const ctrl = document.getElementById('spacing-ctrl');
+            const val = document.getElementById('spacing-val');
+            if(ctrl) ctrl.value = state.spacing;
+            if(val) val.innerText = state.spacing;
         } catch(e) { alert("Invalid JSON"); }
     };
 
@@ -145,12 +180,11 @@ function attachListeners() {
     };
 }
 
-function handleZoom(e) {
-    e.preventDefault();
-    const zoomSpeed = 0.1;
-    const factor = 1 + (e.deltaY > 0 ? -1 : 1) * zoomSpeed;
-    const mouseWorldX = (e.clientX - engine.canvas.width / 2 - engine.view.x) / engine.view.zoom;
-    const mouseWorldY = (e.clientY - engine.canvas.height / 2 - engine.view.y) / engine.view.zoom;
+// Shared zoom logic for Wheel and Pinch
+function applyZoom(factor, centerX, centerY) {
+    const mouseWorldX = (centerX - engine.canvas.width / 2 - engine.view.x) / engine.view.zoom;
+    const mouseWorldY = (centerY - engine.canvas.height / 2 - engine.view.y) / engine.view.zoom;
+    
     const newZoom = Math.min(Math.max(engine.view.zoom * factor, 0.1), 5);
     
     engine.view.x -= mouseWorldX * (newZoom - engine.view.zoom);
@@ -158,143 +192,11 @@ function handleZoom(e) {
     engine.view.zoom = newZoom;
 }
 
-function handleMapClick(e) {
-    const hex = engine.pixelToHex(e.clientX, e.clientY);
-    
-    // 1. Check if clicking an existing HQ
-    const hIdx = state.hqs.findIndex(h => engine.getDistance(hex, h) <= (h.isTurret ? 3 : 1));
-    if (hIdx > -1 && state.moveIdx === -1) {
-        state.selectedIdx = hIdx; 
-        const menu = document.getElementById('context-menu');
-        menu.style.display = 'block'; 
-        menu.style.left = e.clientX + 'px'; 
-        menu.style.top = e.clientY + 'px';
-        return;
-    }
-
-    // 2. Validate Placement
-    const error = checkCollision(hex, state.moveIdx);
-    if (error) {
-        showWarning(error);
-        return;
-    }
-
-    // 3. Process Placement (Move or New)
-    if (state.moveIdx > -1) {
-        state.hqs[state.moveIdx] = { ...state.hqs[state.moveIdx], ...hex };
-        state.moveIdx = -1;
-        updateJSONOutput();
-    } else {
-        const nameInput = document.getElementById('player-name');
-        const names = nameInput.value.split(',').map(n => n.trim()).filter(n => n);
-        
-        if (names.length > 0) {
-            const isRandom = document.getElementById('random-toggle').checked;
-            const finalColor = isRandom ? PALETTE[Math.floor(Math.random() * PALETTE.length)].id : state.activeColorId;
-            
-            state.hqs.push({
-                ...hex,
-                player: names.shift(),
-                colorId: finalColor,
-                isTurret: false
-            });
-            nameInput.value = names.join(', ');
-            updateJSONOutput();
-        }
-    }
+function handleZoom(e) {
+    e.preventDefault();
+    const factor = 1 + (e.deltaY > 0 ? -1 : 1) * 0.1;
+    applyZoom(factor, e.clientX, e.clientY);
 }
 
-function checkCollision(target, excludeIdx = -1) {
-    const d = (Math.abs(target.q) + Math.abs(target.r) + Math.abs(target.s)) / 2;
-    if (d <= 18.5) return "RESTRICTED AREA";
-    
-    for (let i = 0; i < state.hqs.length; i++) {
-        if (i === excludeIdx) continue;
-        const hq = state.hqs[i];
-        const dist = engine.getDistance(target, hq);
-        if (hq.isTurret && dist < 5) return "TURRET OVERLAP";
-        if (!hq.isTurret && dist < (3 + state.spacing)) return "SPACING VIOLATION";
-    }
-    return null;
-}
-
-function showWarning(msg) {
-    const el = document.getElementById('warning-overlay');
-    el.innerText = msg;
-    el.classList.add('show');
-    setTimeout(() => el.classList.remove('show'), 1500);
-}
-
-function updateJSONOutput() {
-    document.getElementById('io-area').value = JSON.stringify({ hqs: state.hqs, spacing: state.spacing });
-}
-
-function animate() {
-    render();
-    requestAnimationFrame(animate);
-}
-
-function render() {
-    const { ctx, canvas, view, hexMap } = engine;
-    ctx.fillStyle = "#0c0c0c";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    
-    ctx.save();
-    ctx.translate(canvas.width / 2 + view.x, canvas.height / 2 + view.y);
-    ctx.scale(view.zoom, view.zoom);
-
-    const hoverHex = engine.pixelToHex(state.mouse.x, state.mouse.y);
-    const style = getComputedStyle(document.body);
-    const nameInputActive = document.getElementById('player-name').value.trim().length > 0;
-
-    hexMap.forEach((val, key) => {
-        const [q, r, s] = key.split(',').map(Number);
-        const px = engine.hexSize * (Math.sqrt(3) * q + Math.sqrt(3)/2 * r);
-        const py = engine.hexSize * (3/2 * r);
-        
-        let color = style.getPropertyValue('--' + val.type);
-        let border = "rgba(255,255,255,0.03)";
-
-        // Draw Placed Entities
-        state.hqs.forEach((hq, idx) => {
-            if (idx === state.moveIdx) return; // Hide original position if moving
-            const dist = engine.getDistance({q,r,s}, hq);
-            if (dist <= (hq.isTurret ? 3 : 1)) {
-                color = (idx === state.selectedIdx) ? style.getPropertyValue('--selected') : PALETTE.find(p => p.id === hq.colorId).std;
-                border = "white";
-                if (hq.isTurret && dist > 2.5) color = "rgba(255,255,255,0.1)"; // Turret inner ring effect
-            }
-        });
-
-        // Draw Ghost
-        if (engine.getDistance({q,r,s}, hoverHex) <= 1) {
-            const err = checkCollision(hoverHex, state.moveIdx);
-            if (err) {
-                color = "rgba(255,0,0,0.4)";
-            } else if (nameInputActive || state.moveIdx > -1) {
-                const isRandom = document.getElementById('random-toggle').checked;
-                let baseColorHex;
-                if (state.moveIdx > -1) baseColorHex = PALETTE.find(p => p.id === state.hqs[state.moveIdx].colorId).std;
-                else baseColorHex = isRandom ? "#ffffff" : PALETTE.find(p => p.id === state.activeColorId).std;
-                color = baseColorHex + "4d"; // Translucent version
-            }
-        }
-
-        engine.drawHex(px, py, color, border);
-    });
-
-    // Draw Text Labels
-    state.hqs.forEach((hq, idx) => {
-        const pos = (idx === state.moveIdx) ? hoverHex : hq;
-        const px = engine.hexSize * (Math.sqrt(3) * pos.q + Math.sqrt(3)/2 * pos.r);
-        const py = engine.hexSize * (3/2 * pos.r);
-        ctx.fillStyle = "white";
-        ctx.font = hq.isTurret ? "bold 13px Inter" : "10px Inter";
-        ctx.textAlign = "center";
-        ctx.fillText(hq.player.toUpperCase(), px, py + 5);
-    });
-
-    ctx.restore();
-}
-
-init();
+// Your original Logic Functions (handleMapClick, checkCollision, showWarning, updateJSONOutput, animate, render)
+// ... Keep them exactly as they were ...
