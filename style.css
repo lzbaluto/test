@@ -4,7 +4,41 @@
     --capital: #f1c40f; --restricted: #6d4c41; --selected: #9b59b6;
 }
 
+body.cb-mode {
+    --grass: #444;
+    --capital: #777;
+    --restricted: #222;
+}
+
 body { margin: 0; font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); overflow: hidden; }
+
+/* Floating Action Buttons */
+.fab-container {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.icon-btn {
+    width: 45px;
+    height: 45px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 20px;
+    transition: 0.2s;
+    user-select: none;
+}
+.icon-btn:hover { background: #333; transform: translateY(-2px); }
+.icon-btn.active { border-color: var(--accent); box-shadow: 0 0 10px var(--accent); }
 
 /* HUD Elements */
 #warning-overlay { 
@@ -41,17 +75,28 @@ body { margin: 0; font-family: 'Inter', sans-serif; background: var(--bg); color
 }
 .swatch.active { border-color: white; transform: scale(1.2); }
 
+.toggle-box {
+    display: flex; flex-direction: column; align-items: center; gap: 2px;
+    font-size: 10px; font-weight: bold; color: #888; cursor: pointer;
+}
+
 #sidebar { 
     position: absolute; bottom: 20px; right: 20px; width: 260px; 
     background: var(--panel); border: 1px solid var(--border); 
     padding: 18px; border-radius: 16px; z-index: 100; 
 }
 
+.control-group label { display: block; font-size: 11px; color: var(--accent); font-weight: bold; margin-bottom: 4px; }
+.control-group input[type=range] { width: 100%; }
+
+.io-group { margin-top: 15px; border-top: 1px solid var(--border); padding-top: 10px; }
+
 /* Buttons & Inputs */
 .btn { 
     width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border); 
-    background: #2a2a2a; color: white; cursor: pointer; margin-top: 6px; font-size: 12px; 
+    background: #2a2a2a; color: white; cursor: pointer; margin-top: 6px; font-size: 12px; transition: 0.1s;
 }
+.btn:hover { background: #3a3a3a; }
 .btn-danger { color: #ff7675; }
 .text-danger { color: #ff7675 !important; }
 
