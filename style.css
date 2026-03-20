@@ -4,164 +4,50 @@
     --capital: #f1c40f; --restricted: #6d4c41; --selected: #9b59b6;
 }
 
-body.cb-mode {
-    --grass: #444;
-    --capital: #777;
-    --restricted: #222;
-}
+body.cb-mode { --grass: #444; --capital: #777; --restricted: #222; }
 
 body { 
-    margin: 0; 
-    font-family: 'Inter', sans-serif; 
-    background: var(--bg); 
-    color: var(--text); 
-    overflow: hidden; 
-    touch-action: none; /* Prevents browser pull-to-refresh and scrolling */
+    margin: 0; font-family: 'Inter', sans-serif; background: var(--bg); 
+    color: var(--text); overflow: hidden; touch-action: none; 
 }
 
-/* Floating Action Buttons */
-.fab-container {
-    position: absolute;
-    top: 20px;
-    right: 20px;
-    z-index: 1000;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-.icon-btn {
-    width: 45px;
-    height: 45px;
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    font-size: 20px;
-    transition: 0.2s;
-    user-select: none;
-    touch-action: manipulation;
-}
-.icon-btn:hover { background: #333; transform: translateY(-2px); }
-.icon-btn.active { border-color: var(--accent); box-shadow: 0 0 10px var(--accent); }
-
-/* HUD Elements */
-#warning-overlay { 
-    position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); 
-    color: #ff4757; font-size: 32px; font-weight: 900; pointer-events: none; 
-    opacity: 0; z-index: 2000; text-shadow: 0 0 20px #000; transition: 0.3s; 
-    text-align: center; width: 80%;
-}
-#warning-overlay.show { opacity: 1; transform: translate(-50%, -60%); }
-
-#coords-hud { 
-    position: absolute; bottom: 20px; left: 20px; background: var(--panel); 
-    padding: 8px 15px; border-radius: 8px; border: 1px solid var(--border); 
-    font-family: monospace; font-size: 10px; color: var(--accent); pointer-events: none; 
-}
-
-/* UI Panels */
 #ui-top { 
-    position: absolute; top: 20px; left: 50%; transform: translateX(-50%); 
-    z-index: 100; background: var(--panel); padding: 12px 20px; 
+    position: absolute; top: 10px; left: 50%; transform: translateX(-50%); 
+    z-index: 100; background: var(--panel); padding: 12px; 
     border-radius: 20px; border: 1px solid var(--border); 
     display: flex; flex-direction: column; align-items: center; gap: 10px;
-    width: 90%; max-width: 400px; box-sizing: border-box;
+    width: 90%; max-width: 400px;
 }
 
 #player-name { 
-    padding: 10px 20px; border-radius: 40px; border: 2px solid var(--accent); 
-    background: #000; color: #fff; width: 100%; text-align: center; outline: none; 
-    font-size: 16px; /* 16px prevents iOS zoom on focus */
+    padding: 10px; border-radius: 40px; border: 2px solid var(--accent); 
+    background: #000; color: #fff; width: 100%; text-align: center; font-size: 16px; 
 }
 
-/* New Dropdown Styling */
 #colorSelect {
-    background: #000;
-    color: var(--text);
-    border: 1px solid var(--border);
-    padding: 8px;
-    border-radius: 8px;
-    width: 100%;
-    outline: none;
-    font-size: 14px;
-}
-
-#colorSelect optgroup {
-    background: #1a1a1a;
-    color: var(--accent);
-    font-weight: bold;
-}
-
-.controls-row { 
-    display: flex; 
-    align-items: center; 
-    gap: 15px; 
-    width: 100%;
-    justify-content: center;
+    background: #000; color: white; padding: 8px; border-radius: 8px; flex: 1;
 }
 
 #sidebar { 
-    position: absolute; 
-    bottom: 20px; 
-    right: 20px; 
-    width: 240px; 
-    background: var(--panel); 
-    border: 1px solid var(--border); 
-    padding: 15px; 
-    border-radius: 16px; 
-    z-index: 100; 
-    transition: transform 0.3s;
+    position: absolute; bottom: 10px; right: 10px; width: 220px; 
+    background: var(--panel); border: 1px solid var(--border); 
+    padding: 12px; border-radius: 16px; z-index: 100; 
 }
 
-/* Responsive adjustments for smaller screens */
 @media (max-width: 600px) {
-    #sidebar {
-        width: 180px;
-        font-size: 10px;
-        padding: 10px;
-        bottom: 70px; /* Move it up so it doesn't hit the Coords HUD */
-    }
-    
-    #ui-top {
-        top: 10px;
-        padding: 10px;
-    }
+    #sidebar { width: 160px; font-size: 10px; bottom: 60px; }
 }
 
-.control-group label { display: block; font-size: 11px; color: var(--accent); font-weight: bold; margin-bottom: 4px; }
-.control-group input[type=range] { width: 100%; }
+canvas { display: block; cursor: crosshair; touch-action: none; }
 
-.io-group { margin-top: 15px; border-top: 1px solid var(--border); padding-top: 10px; }
+.fab-container { position: absolute; top: 80px; right: 10px; z-index: 1000; display: flex; flex-direction: column; gap: 10px; }
+.icon-btn { width: 40px; height: 40px; background: var(--panel); border-radius: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer; border: 1px solid var(--border); }
 
-/* Buttons & Inputs */
-.btn { 
-    width: 100%; padding: 12px; border-radius: 6px; border: 1px solid var(--border); 
-    background: #2a2a2a; color: white; cursor: pointer; margin-top: 6px; font-size: 12px; transition: 0.1s;
-    touch-action: manipulation;
-}
-.btn:active { background: var(--accent); }
-.btn-danger { color: #ff7675; }
+#coords-hud { position: absolute; bottom: 10px; left: 10px; background: var(--panel); padding: 5px 10px; font-size: 10px; color: var(--accent); pointer-events: none; border-radius: 5px; }
 
-textarea { 
-    width: 100%; height: 60px; background: #000; color: #0f0; 
-    border: 1px solid var(--border); margin: 10px 0; font-family: monospace; 
-    font-size: 10px; padding: 8px; box-sizing: border-box; resize: none;
-}
-
-#context-menu { 
-    position: absolute; display: none; background: var(--panel); 
-    border: 1px solid var(--border); border-radius: 8px; z-index: 1000; padding: 6px; 
-    min-width: 120px;
-}
-#context-menu button { 
-    display: block; width: 100%; padding: 12px; text-align: left; 
-    background: transparent; border: none; color: white; cursor: pointer; 
-    font-size: 14px;
-}
+#context-menu { position: absolute; display: none; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; z-index: 1000; padding: 5px; }
+#context-menu button { display: block; width: 100%; padding: 10px; background: transparent; color: white; border: none; text-align: left; cursor: pointer; }
 #context-menu button:hover { background: var(--accent); }
 
-canvas { display: block; touch-action: none; }
+#warning-overlay { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #ff4757; font-size: 24px; font-weight: 900; opacity: 0; transition: 0.3s; pointer-events: none; }
+#warning-overlay.show { opacity: 1; }
