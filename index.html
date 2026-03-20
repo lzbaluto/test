@@ -3,71 +3,65 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Base Commander</title>
+    <title>Hex Commander Mobile</title>
     <link rel="stylesheet" href="style.css">
-    <style>
-        /* Mobile-specific overrides for the new dropdown and touch stability */
-        body {
-            touch-action: none; /* Prevents the whole page from bouncing/scrolling on mobile */
-            overflow: hidden;
-        }
-
-        .ui-container {
-            position: fixed;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            z-index: 1000;
-            width: 90%;
-            max-width: 350px;
-        }
-
-        select#colorSelect {
-            padding: 12px;
-            font-size: 16px; /* Prevents iOS zoom-on-focus */
-            border-radius: 8px;
-            background: #222;
-            color: white;
-            border: 1px solid #444;
-            width: 100%;
-        }
-
-        #moveHQ {
-            padding: 15px;
-            font-size: 16px;
-            font-weight: bold;
-            border-radius: 8px;
-            touch-action: manipulation;
-        }
-    </style>
 </head>
 <body>
 
-    <div id="game-canvas">
-        <div id="hq-unit">HQ</div>
+    <div id="warning-overlay"></div>
+    <div id="coords-hud">Q: 0 R: 0 S: 0</div>
+
+    <div id="ui-top">
+        <input type="text" id="player-name" placeholder="Enter Player Names (comma separated)">
+        
+        <div class="controls-row">
+            <select id="colorSelect">
+                <optgroup label="Neon Styles">
+                    <option value="cyan" selected>Neon Cyan</option>
+                    <option value="lime">Neon Lime</option>
+                    <option value="magenta">Neon Magenta</option>
+                    <option value="yellow">Neon Yellow</option>
+                </optgroup>
+                <optgroup label="Flat Styles">
+                    <option value="orange">Flat Orange</option>
+                    <option value="red">Flat Red</option>
+                    <option value="blue">Flat Blue</option>
+                    <option value="gray">Flat Gray</option>
+                </optgroup>
+            </select>
+
+            <div class="toggle-box">
+                <input type="checkbox" id="random-toggle">
+                <span>RANDOM</span>
+            </div>
+        </div>
     </div>
 
-    <div class="ui-container">
-        <select id="colorSelect">
-            <optgroup label="Neon Styles">
-                <option value="#39ff14" selected>Neon Green</option>
-                <option value="#ff00ff">Neon Pink</option>
-                <option value="#00ffff">Neon Cyan</option>
-            </optgroup>
-            <optgroup label="Flat Styles">
-                <option value="#2ecc71">Flat Green</option>
-                <option value="#e74c3c">Flat Red</option>
-                <option value="#3498db">Flat Blue</option>
-                <option value="#7f8c8d">Flat Gray</option>
-            </optgroup>
-        </select>
-
-        <button id="moveHQ">MOVE HQ</button>
+    <div class="fab-container">
+        <div id="center-map" class="icon-btn">🎯</div>
+        <div id="cb-toggle" class="icon-btn">👁️</div>
     </div>
+
     <canvas id="mapCanvas"></canvas>
+
+    <div id="sidebar">
+        <div class="control-group">
+            <label>SPACING: <span id="spacing-val">1</span></label>
+            <input type="range" id="spacing-ctrl" min="0" max="10" value="1">
+        </div>
+
+        <div class="io-group">
+            <textarea id="io-area" spellcheck="false"></textarea>
+            <button class="btn" id="btn-copy">COPY JSON</button>
+            <button class="btn" id="btn-import">IMPORT</button>
+            <button class="btn btn-danger" id="btn-clear">CLEAR MAP</button>
+        </div>
+    </div>
+
+    <div id="context-menu">
+        <button id="menu-move">MOVE HQ</button>
+        <button id="menu-delete" class="text-danger">DELETE</button>
+    </div>
 
     <script src="mapEngine.js"></script>
     <script src="app.js"></script>
