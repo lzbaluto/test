@@ -3,12 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HexMap Pro | Project Edition</title>
+    <title>HexMap Pro | Complete Edition</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div id="warning-overlay">PLACEMENT RESTRICTED</div>
     <div id="coords-hud">Q: 0 R: 0 S: 0</div>
+
+    <div class="fab-container">
+        <div id="cb-toggle" class="icon-btn" title="Toggle Colorblind Mode">👁️</div>
+        <div id="center-map" class="icon-btn" title="Center Map">⌖</div>
+    </div>
 
     <header id="ui-top">
         <input type="text" id="player-name" placeholder="Names (Comma Separated)">
@@ -36,8 +41,8 @@
     </aside>
 
     <div id="context-menu">
-        <button data-action="move">Move HQ</button>
-        <button data-action="delete" class="text-danger">Delete</button>
+        <button id="menu-move">Move HQ</button>
+        <button id="menu-delete" class="text-danger">Delete</button>
     </div>
 
     <canvas id="mapCanvas"></canvas>
