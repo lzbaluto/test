@@ -21,7 +21,8 @@ const PALETTE = [
     { id: 'cyan', std: '#00fbff' }, { id: 'lime', std: '#39ff14' },
     { id: 'magenta', std: '#ff00ff' }, { id: 'yellow', std: '#fffb00' },
     { id: 'orange', std: '#ff6600' }, { id: 'red', std: '#ff0055' },
-    { id: 'blue', std: '#3498db' }, { id: 'gray', std: '#7f8c8d' }
+    { id: 'blue', std: '#3498db' }, { id: 'gray', std: '#7f8c8d' },
+    { id: 'purple', std: '#ff00ff' }
 ];
 
 function init() {
