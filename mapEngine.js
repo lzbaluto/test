@@ -8,7 +8,7 @@ class MapEngine {
     }
 
     generateBaseLayer() {
-        for (let q = -60; q <= 60; q++) {
+        for (let q = -90; q <= 90; q++) {
             for (let r = Math.max(-60, -q - 60); r <= Math.min(60, -q + 60); r++) {
                 let s = -q - r;
                 let d = (Math.abs(q) + Math.abs(r) + Math.abs(s)) / 2;
