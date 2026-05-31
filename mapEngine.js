@@ -9,7 +9,7 @@ class MapEngine {
 
     generateBaseLayer() {
         for (let q = -90; q <= 90; q++) {
-            for (let r = Math.max(-60, -q - 60); r <= Math.min(60, -q + 60); r++) {
+            for (let r = Math.max(-90, -q - 90); r <= Math.min(90, -q + 90); r++) {
                 let s = -q - r;
                 let d = (Math.abs(q) + Math.abs(r) + Math.abs(s)) / 2;
                 let type = d <= 18 ? 'restricted' : (d <= 42 ? 'capital' : 'grass');
