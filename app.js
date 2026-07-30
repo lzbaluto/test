@@ -134,21 +134,22 @@ function attachListeners() {
         updateJSONOutput();
         requestRender();
     };
-
     document.getElementById('menu-move').onclick = () => {
-        state.moveIdx = state.selectedIdx;
+        state.moveIdx = state.selectedIdx; // Flag which HQ is being moved
         document.getElementById('context-menu').style.display = 'none';
         requestRender();
     };
-
+    
     document.getElementById('menu-delete').onclick = () => {
-        state.hqs.splice(state.selectedIdx, 1);
-        state.selectedIdx = -1;
-        document.getElementById('context-menu').style.display = 'none';
-        updateJSONOutput();
-        requestRender();
+        if (state.selectedIdx > -1) {
+            state.hqs.splice(state.selectedIdx, 1); // Delete the HQ
+            state.selectedIdx = -1;
+            state.moveIdx = -1;
+            document.getElementById('context-menu').style.display = 'none';
+            updateJSONOutput();
+            requestRender();
+        }
     };
-
     document.getElementById('btn-copy').onclick = () => {
         document.getElementById('io-area').select();
         document.execCommand('copy');
