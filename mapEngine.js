@@ -12,7 +12,7 @@ class MapEngine {
             for (let r = Math.max(-90, -q - 90); r <= Math.min(90, -q + 90); r++) {
                 let s = -q - r;
                 let d = (Math.abs(q) + Math.abs(r) + Math.abs(s)) / 2;
-                let type = d <= 18 ? 'restricted' : (d <= 42 ? 'capital' : 'grass');
+                let type = d <= 17 ? 'restricted' : (d <= 42 ? 'capital' : 'grass');
                 this.hexMap.set(`${q},${r},${s}`, { type });
             }
         }
