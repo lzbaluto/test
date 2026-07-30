@@ -59,12 +59,20 @@ function attachListeners() {
 
     // Unified Pointer Events
     window.addEventListener('pointerdown', e => {
+        // 1. If clicking inside the context menu, do nothing here so the click event can fire!
+        if (e.target.closest('#context-menu')) return;
+        
+        // 2. If clicking anywhere ELSE, hide the context menu
+        document.getElementById('context-menu').style.display = 'none';
+
+        // 3. Ignore other UI elements so we don't accidentally pan the map
         if (e.target.closest('#ui-top') || e.target.closest('#sidebar') || e.target.closest('.fab-container')) return;
+        
+        // 4. Start panning the canvas
         state.isPanning = true;
         state.panStart = { x: e.clientX, y: e.clientY };
         state.panTotalDist = 0;
-        document.getElementById('context-menu').style.display = 'none';
-        if(e.target.id === 'mapCanvas') engine.canvas.setPointerCapture(e.pointerId);
+        if (e.target.id === 'mapCanvas') engine.canvas.setPointerCapture(e.pointerId);
     });
 
     window.addEventListener('pointermove', e => {
