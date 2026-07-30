@@ -2,9 +2,9 @@ const engine = new MapEngine('mapCanvas');
 
 const state = {
     hqs: [
-        {"q":0,"r":-17,"s":17,"player":"TURRET ALPHA","colorId":"cyan","isTurret":true},
-        {"q":-17,"r":17,"s":0,"player":"TURRET BETA","colorId":"cyan","isTurret":true},
-        {"q":17,"r":0,"s":-17,"player":"TURRET GAMMA","colorId":"cyan","isTurret":true}
+        {"q":-16,"r":16,"s":0,"player":"TURRET 1","colorId":"cyan","isTurret":true},
+        {"q":0,"r":-16,"s":16,"player":"TURRET 2","colorId":"cyan","isTurret":true},
+        {"q":16,"r":0,"s":-16,"player":"TURRET 3","colorId":"cyan","isTurret":true}
     ],
     spacing: 1,
     activeColorId: 'cyan',
