@@ -175,9 +175,26 @@ function attachListeners() {
 
 function handleMapClick(e) {
     const hex = engine.pixelToHex(e.clientX, e.clientY);
+
+    // 1. IF WE ARE IN "MOVE MODE": Try to place the moving HQ at the target hex
+    if (state.moveIdx > -1) {
+        const error = checkCollision(hex, state.moveIdx);
+        if (error) { 
+            showWarning(error); 
+            return; 
+        }
+        // Successfully update position and exit move mode
+        state.hqs[state.moveIdx] = { ...state.hqs[state.moveIdx], ...hex };
+        state.moveIdx = -1;
+        state.selectedIdx = -1;
+        updateJSONOutput();
+        requestRender();
+        return;
+    }
+
+    // 2. IF WE CLICKED AN EXISTING HQ: Open Context Menu
     const hIdx = state.hqs.findIndex(h => engine.getDistance(hex, h) <= (h.isTurret ? 3 : 1));
-    
-    if (hIdx > -1 && state.moveIdx === -1) {
+    if (hIdx > -1) {
         state.selectedIdx = hIdx;
         const menu = document.getElementById('context-menu');
         menu.style.display = 'block';
@@ -187,22 +204,22 @@ function handleMapClick(e) {
         return;
     }
 
-    const error = checkCollision(hex, state.moveIdx);
-    if (error) { showWarning(error); return; }
-
-    if (state.moveIdx > -1) {
-        state.hqs[state.moveIdx] = { ...state.hqs[state.moveIdx], ...hex };
-        state.moveIdx = -1;
-    } else {
-        const nameInput = document.getElementById('player-name');
-        const names = nameInput.value.split(',').map(n => n.trim()).filter(n => n);
-        if (names.length > 0) {
-            const isRandom = document.getElementById('random-toggle').checked;
-            const finalColor = isRandom ? PALETTE[Math.floor(Math.random() * PALETTE.length)].id : state.activeColorId;
-            state.hqs.push({ ...hex, player: names.shift(), colorId: finalColor, isTurret: false });
-            nameInput.value = names.join(', ');
-        }
+    // 3. IF WE CLICKED EMPTY SPACE: Try to place a NEW HQ
+    const error = checkCollision(hex);
+    if (error) { 
+        showWarning(error); 
+        return; 
     }
+
+    const nameInput = document.getElementById('player-name');
+    const names = nameInput.value.split(',').map(n => n.trim()).filter(n => n);
+    if (names.length > 0) {
+        const isRandom = document.getElementById('random-toggle').checked;
+        const finalColor = isRandom ? PALETTE[Math.floor(Math.random() * PALETTE.length)].id : state.activeColorId;
+        state.hqs.push({ ...hex, player: names.shift(), colorId: finalColor, isTurret: false });
+        nameInput.value = names.join(', ');
+    }
+
     updateJSONOutput();
     requestRender();
 }
