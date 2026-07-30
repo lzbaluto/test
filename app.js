@@ -14,7 +14,8 @@ const state = {
     isPanning: false,
     panStart: { x: 0, y: 0 },
     panTotalDist: 0,
-    lastPinchDist: 0
+    lastPinchDist: 0,
+    renderRequested: false // Flag to track pending render calls
 };
 
 const PALETTE = [
@@ -25,17 +26,29 @@ const PALETTE = [
     { id: 'purple', std: '#ff00ff' }
 ];
 
+// Triggers a render pass on the next available animation frame if one isn't already scheduled
+function requestRender() {
+    if (!state.renderRequested) {
+        state.renderRequested = true;
+        requestAnimationFrame(() => {
+            render();
+            state.renderRequested = false;
+        });
+    }
+}
+
 function init() {
     engine.generateBaseLayer();
     attachListeners();
     updateJSONOutput();
-    animate();
+    requestRender(); // Initial render
 }
 
 function attachListeners() {
     window.addEventListener('resize', () => {
         engine.canvas.width = window.innerWidth;
         engine.canvas.height = window.innerHeight;
+        requestRender();
     });
     window.dispatchEvent(new Event('resize'));
 
@@ -66,6 +79,8 @@ function attachListeners() {
         }
         const h = engine.pixelToHex(e.clientX, e.clientY);
         document.getElementById('coords-hud').innerText = `Q: ${h.q} R: ${h.r} S: ${h.s}`;
+        
+        requestRender(); // Redraw for hover highlight or pan movement
     });
 
     window.addEventListener('pointerup', e => {
@@ -83,6 +98,7 @@ function attachListeners() {
         engine.view.x -= wx * (nz - engine.view.zoom);
         engine.view.y -= wy * (nz - engine.view.zoom);
         engine.view.zoom = nz;
+        requestRender(); // Redraw on zoom change
     };
 
     engine.canvas.addEventListener('wheel', e => {
@@ -102,17 +118,27 @@ function attachListeners() {
     engine.canvas.addEventListener('touchend', () => state.lastPinchDist = 0);
 
     // UI Actions
-    document.getElementById('cb-toggle').onclick = () => document.body.classList.toggle('cb-mode');
-    document.getElementById('center-map').onclick = () => engine.view = { x: 0, y: 0, zoom: 0.8 };
+    document.getElementById('cb-toggle').onclick = () => {
+        document.body.classList.toggle('cb-mode');
+        requestRender(); // Redraw to pick up new CSS custom property values
+    };
+    
+    document.getElementById('center-map').onclick = () => {
+        engine.view = { x: 0, y: 0, zoom: 0.8 };
+        requestRender();
+    };
+
     document.getElementById('spacing-ctrl').oninput = (e) => {
         state.spacing = parseInt(e.target.value);
         document.getElementById('spacing-val').innerText = state.spacing;
         updateJSONOutput();
+        requestRender();
     };
 
     document.getElementById('menu-move').onclick = () => {
         state.moveIdx = state.selectedIdx;
         document.getElementById('context-menu').style.display = 'none';
+        requestRender();
     };
 
     document.getElementById('menu-delete').onclick = () => {
@@ -120,6 +146,7 @@ function attachListeners() {
         state.selectedIdx = -1;
         document.getElementById('context-menu').style.display = 'none';
         updateJSONOutput();
+        requestRender();
     };
 
     document.getElementById('btn-copy').onclick = () => {
@@ -133,11 +160,16 @@ function attachListeners() {
             state.hqs = data.hqs; state.spacing = data.spacing;
             document.getElementById('spacing-ctrl').value = state.spacing;
             document.getElementById('spacing-val').innerText = state.spacing;
+            requestRender();
         } catch(e) { alert("Invalid JSON"); }
     };
 
     document.getElementById('btn-clear').onclick = () => {
-        if(confirm("Wipe all?")) { state.hqs = state.hqs.filter(h => h.isTurret); updateJSONOutput(); }
+        if(confirm("Wipe all?")) { 
+            state.hqs = state.hqs.filter(h => h.isTurret); 
+            updateJSONOutput(); 
+            requestRender();
+        }
     };
 }
 
@@ -151,6 +183,7 @@ function handleMapClick(e) {
         menu.style.display = 'block';
         menu.style.left = e.clientX + 'px';
         menu.style.top = e.clientY + 'px';
+        requestRender();
         return;
     }
 
@@ -171,6 +204,7 @@ function handleMapClick(e) {
         }
     }
     updateJSONOutput();
+    requestRender();
 }
 
 function checkCollision(target, excludeIdx = -1) {
@@ -194,11 +228,6 @@ function showWarning(msg) {
 
 function updateJSONOutput() {
     document.getElementById('io-area').value = JSON.stringify({ hqs: state.hqs, spacing: state.spacing });
-}
-
-function animate() {
-    render();
-    requestAnimationFrame(animate);
 }
 
 function render() {
