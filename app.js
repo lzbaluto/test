@@ -292,7 +292,7 @@ function render() {
         const pos = (idx === state.moveIdx) ? hoverHex : hq;
         const px = engine.hexSize * (Math.sqrt(3) * pos.q + Math.sqrt(3)/2 * pos.r);
         const py = engine.hexSize * (3/2 * pos.r);
-        ctx.fillStyle = "white";
+        ctx.fillStyle = "black";
         ctx.font = hq.isTurret ? "bold 13px Inter" : "10px Inter";
         ctx.textAlign = "center";
         ctx.fillText(hq.player.toUpperCase(), px, py + 5);
