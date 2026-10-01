@@ -21,7 +21,7 @@ body {
 
 #player-name { 
     padding: 10px; border-radius: 40px; border: 2px solid var(--accent); 
-    background: #000; color: #010; width: 100%; text-align: center; font-size: 16px; 
+    background: #000; color: #fff; width: 100%; text-align: center; font-size: 16px; 
 }
 
 #colorSelect {
